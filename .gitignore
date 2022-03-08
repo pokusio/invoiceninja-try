@@ -1,0 +1,3 @@
+docker/run/.secrets
+.secrets
+!docker/run.template/.secrets

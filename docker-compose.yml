@@ -1,0 +1,132 @@
+version: "3.7"
+# version: "3"
+networks:
+  mongo_net:
+    driver: bridge
+  invoiceninja_net:
+    driver: bridge
+volumes:
+  mongodb_server_data:
+  mysql_server_data:
+  invoiceninja_server_storage_data:
+  invoiceninja_server_public_data:
+services:
+  invoiceninja:
+    build:
+      context: ./oci/invoiceninja/
+      dockerfile: ./docker/invoiceninja/Dockerfile
+    volumes:
+      - $PWD/docker/run/etc.hosts:/etc/hosts:ro
+      - invoiceninja_server_storage_data:/var/app/public
+      - invoiceninja_server_public_data:/var/app/storage
+    environment:
+      APP_ENV: 'production'
+      APP_DEBUG: 0
+      # I added an entry in /etc/hosts for ninja.dev
+      APP_URL: 'http://ninja.dev'
+      APP_CIPHER: 'AES-256-CBC'
+      DB_TYPE: 'mysql'
+      DB_STRICT: 'false'
+      DB_HOST: 'ninja_db'
+      DB_DATABASE: 'ninja'
+      DB_USERNAME: 'ninja'
+      DB_PASSWORD: 'ninja'
+      # --- all secrets, but as files :
+      APP_KEY: /run/secrets/invoiceninja_app_key.txt
+    extra_hosts:
+      - "mongo.pok-us.io:${DOCK_HOST_IP_ADDR}"
+      - "mongo:${DOCK_HOST_IP_ADDR}"
+      - "ninja.dev:${DOCK_HOST_IP_ADDR}"
+      - "ninja_db:${DOCK_HOST_IP_ADDR}"
+    networks:
+      invoiceninja_net:
+        aliases:
+          - invoiceninja.pok-us.io
+          - invoiceninja
+          - ninja.dev
+    ports:
+     - 0.0.0.0:8099:80
+    depends_on:
+     - ninja_db
+
+  ninja_db:
+    image: mysql:5
+#    When running on ARM64 use MariaDB instead of MySQL
+#    image: mariadb:10.4
+#    For auto DB backups comment out image and use the build block below
+#    build:
+#      context: ./config/mysql
+    ports:
+      - "3305:3306"
+    restart: always
+    env_file: env
+    volumes:
+      - mysql_server_data:/var/lib/mysql:rw,delegated
+      # - $PWD/docker/run/mysql/data:/var/lib/mysql:rw,delegated
+
+      # remove comments for next 4 lines if you want auto sql backups
+      #- ./docker/mysql/bak:/backups:rw
+      #- ./config/mysql/backup-script:/etc/cron.daily/daily:ro
+      #- ./config/mysql/backup-script:/etc/cron.weekly/weekly:ro
+      #- ./config/mysql/backup-script:/etc/cron.monthly/monthly:ro
+    extra_hosts:
+      - "in5.localhost:${DOCK_HOST_IP_ADDR}" #host and ip
+      - "mongo.pok-us.io:${DOCK_HOST_IP_ADDR}"
+      - "mongo:${DOCK_HOST_IP_ADDR}"
+      - "ninja.dev:${DOCK_HOST_IP_ADDR}"
+      - "ninja_db:${DOCK_HOST_IP_ADDR}"
+    networks:
+      invoiceninja_net:
+        aliases:
+          - ninja_db.pok-us.io
+          - ninja_db
+
+secrets:
+  mongo_admin_user:
+    file: ./docker/run/.secrets/mongo_admin_user.txt
+  mongo_admin_pass:
+    file: ./docker/run/.secrets/mongo_admin_pass.txt
+  basicauth_username:
+    file: ./docker/run/.secrets/basicauth_username.txt
+  basicauth_password:
+    file: ./docker/run/.secrets/basicauth_password.txt
+  site_cookiesecret:
+    file: ./docker/run/.secrets/site_cookiesecret.txt
+  site_sessionsecret:
+    file: ./docker/run/.secrets/site_sessionsecret.txt
+  mongodb_url:
+    file: ./docker/run/.secrets/mongodb_url.txt
+  mongodb_auth_database:
+    file: ./docker/run/.secrets/mongodb_auth_database.txt
+  mongodb_auth_username:
+    file: ./docker/run/.secrets/mongodb_auth_username.txt
+  mongodb_auth_password:
+    file: ./docker/run/.secrets/mongodb_auth_password.txt
+  caddy_admin_user:
+    file: ./docker/run/.secrets/caddy/caddy_admin_user.txt
+  caddy_admin_password:
+    file: ./docker/run/.secrets/caddy/caddy_admin_password.txt
+  caddy_admin_password_hash:
+    file: ./docker/run/.secrets/caddy/caddy_admin_password_hash.txt
+  invoiceninja_app_key:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_app_key.txt
+  invoiceninja_in_user_email:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_in_user_email.txt
+  invoiceninja_in_password:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_in_password.txt
+  invoiceninja_mail_mailer:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_mail_mailer.txt
+  invoiceninja_mail_host:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_mail_host.txt
+  invoiceninja_mail_port:
+    file: ./docker/run/.secrets/invoiceninja/invoiceninja_mail_port.txt
+
+
+# INVOICENINJA_MAIL_MAILER=log => secret loaded from file, not env, thanks
+# INVOICENINJA_MAIL_HOST=smtp.mailtrap.io => secret loaded from file, not env, thanks
+# INVOICENINJA_MAIL_PORT=2525 => secret loaded from file, not env, thanks
+# ----------------  #
+# INVOICENINJA_IN_USER_EMAIL=admin@example.com
+# INVOICENINJA_IN_PASSWORD=changeme!
+# --- # IN_USER_EMAIL => secret loaded from file, not env, thanks
+# --- # IN_PASSWORD => secret loaded from file, not env, thanks

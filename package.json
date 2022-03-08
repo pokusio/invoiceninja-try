@@ -1,0 +1,23 @@
+{
+  "name": "gossipies",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "secrets": "bash -c 'source ./.env.sh && ./.npm.scripts/secrets/prepare.sh'",
+    "preps": "bash -c 'source ./.env.sh && ./.npm.scripts/prepare.sh'",
+    "start": "bash -c 'source ./.env.sh && ./.npm.scripts/start.sh'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pokusio/invoiceninja-try.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pokusio/invoiceninja-try/issues"
+  },
+  "homepage": "https://github.com/pokusio/invoiceninja-try#readme"
+}
